@@ -1,0 +1,72 @@
+---
+title: "Boston interactive"
+author: "Olufemi Olamijulo"
+date: "10/17/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+```{r}
+library(leaflet)
+library(sf)
+library(tidyverse)
+library(tidycensus)
+library(ggthemes)
+library(ggspatial)
+library(htmlwidgets)
+library(tidytransit)
+acs_vars <- load_variables(2017, "acs5")
+vars2010 <- load_variables(2010, "sf1")
+```
+```{r}
+Wayne_Black <- get_decennial(geography = "block",
+                          state = "MI", county = "Wayne",
+                          year = 2010,
+                          output = "wide",
+                          variables = c(tot_pop = 'P008001',
+                                        bl_pop = 'P008004'),
+                          geometry = TRUE)
+Wayne_Black <- Wayne_Black %>%
+  mutate(pct_Black = bl_pop / tot_pop) %>%
+  filter(tot_pop > 0)
+
+MI_state_plane <- "+proj=utm +zone=16 +ellps=GRS80 +to_meter=0.3048006096012192 +no_defs"
+
+Black_map3 <- leaflet(Wayne_Black) %>%
+  addProviderTiles("Stamen.TonerLite") %>%
+  addPolygons(color = ~MI_Black_palette(pct_Black), stroke = FALSE, fillOpacity = 0.7,
+              highlightOptions = highlightOptions(fillColor = "darkorange", fillOpacity = 0.9),
+              label = Wayne_Black$NAME,
+              popup = paste("Total population: ", Wayne_Black$tot_pop, "<br/>",
+                            "Black population: ", Wayne_Black$bl_pop, " (", 
+                            round(Wayne_Black$pct_Black * 100, 1), "%)", sep = "")) %>%
+    addLegend("bottomright", pal = MI_Black_palette, values = ~pct_Black,
+    title = "Percent of population<br/>identifying as Black alone",
+    labFormat = labelFormat(suffix = "%",
+                            transform = function(x) 100 * x),
+    opacity = 1)
+Black_map3
+```
